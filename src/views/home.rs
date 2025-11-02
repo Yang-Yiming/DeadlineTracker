@@ -7,7 +7,7 @@ use dioxus::prelude::*;
 #[component]
 pub fn Home() -> Element {
     // Create sample deadlines for demonstration
-    let deadline1 = Deadline {
+    let mut deadline1 = use_signal(|| Deadline {
         id: 1,
         name: "DSAA Project".to_string(),
         due_date: datetime::Datetime {
@@ -22,9 +22,9 @@ pub fn Home() -> Element {
         milestones: vec![(50, "Midpoint Review".to_string())],
         urgency: 5.5,
         tags: vec!["Important".to_string(), "Academic".to_string()],
-    };
+    });
     
-    let deadline2 = Deadline {
+    let mut deadline2 = use_signal(|| Deadline {
         id: 2,
         name: "Physics Exam".to_string(),
         due_date: datetime::Datetime {
@@ -39,9 +39,9 @@ pub fn Home() -> Element {
         milestones: vec![(25, "Review Chapters 1-3".to_string()), (75, "Full Practice Test".to_string())],
         urgency: 2.3,
         tags: vec!["Exam".to_string()],
-    };
+    });
     
-    let deadline3 = Deadline {
+    let mut deadline3 = use_signal(|| Deadline {
         id: 3,
         name: "Low Priority Task".to_string(),
         due_date: datetime::Datetime {
@@ -56,7 +56,7 @@ pub fn Home() -> Element {
         milestones: vec![],
         urgency: 0.5,
         tags: vec!["Optional".to_string()],
-    };
+    });
 
     rsx! {
         Hero {}
@@ -65,9 +65,9 @@ pub fn Home() -> Element {
         div {
             style: "padding: 20px;",
             h2 { "Your Deadlines" }
-            DeadlineItemView { deadline: deadline1 }
-            DeadlineItemView { deadline: deadline2 }
-            DeadlineItemView { deadline: deadline3 }
+            DeadlineItemView { deadline: deadline1(), on_update: move |d: Deadline| deadline1.set(d) }
+            DeadlineItemView { deadline: deadline2(), on_update: move |d: Deadline| deadline2.set(d) }
+            DeadlineItemView { deadline: deadline3(), on_update: move |d: Deadline| deadline3.set(d) }
         }
     }
 }

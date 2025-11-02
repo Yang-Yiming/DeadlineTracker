@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use crate::model::Deadline;
+use crate::model::datetime::Datetime;
 
 // --- Continuous color utilities ---
 // We map urgency (0..∞) to a continuous gradient through Blue -> Yellow -> Orange -> Red
@@ -65,7 +66,7 @@ fn color_from_urgency_bg_rgba(urgency: f32, alpha: f32) -> String {
 }
 
 #[component]
-pub fn DeadlineItemView(deadline: Deadline) -> Element {
+pub fn DeadlineItemView(deadline: Deadline, on_update: EventHandler<Deadline>) -> Element {
     // Local, draggable progress state (0-100). If you want to persist upward, we can add a callback later.
     let mut progress = use_signal(|| deadline.progress as f32);
     // Track hovered milestone index to show a custom tooltip above the marker
@@ -75,6 +76,16 @@ pub fn DeadlineItemView(deadline: Deadline) -> Element {
     let border_color = color_from_urgency_hex(deadline.urgency);
     let bg_color = color_from_urgency_bg_rgba(deadline.urgency, 0.10);
     let due_date_str = deadline.due_date.to_string();
+    // Calculate remaining days for the due badge
+    let now = Datetime::now();
+    let diff = deadline.due_date.time_diff(&now);
+    let due_badge = if diff.is_negative {
+        format!("Overdue {}d", diff.days)
+    } else if diff.days == 0 {
+        "Due today".to_string()
+    } else {
+        format!("Due in {}d", diff.days)
+    };
     let progress_width = move || format!("{}%", progress().clamp(0.0, 100.0));
 
     rsx! {
@@ -90,19 +101,58 @@ pub fn DeadlineItemView(deadline: Deadline) -> Element {
                 flex-direction: column;
                 gap: 12px;
             ",
-            // Header with title (urgency hidden as requested)
+            // Header with title on the left, due date on the top-right
             div {
-                style: "display: flex; justify-content: space-between; align-items: center;",
-                h3 {
-                    style: "margin: 0; font-size: 1.25rem; font-weight: 600;",
-                    "{deadline.name}"
+                style: "display: flex; justify-content: space-between; align-items: center; gap: 12px;",
+                // Title with a subtle icon
+                div {
+                    style: "display: flex; align-items: center; gap: 8px;",
+                    span { "⚡" }
+                    h3 {
+                        style: "margin: 0; font-size: 1.25rem; font-weight: 600;",
+                        "{deadline.name}"
+                    }
+                }
+
+                // Right-top due date label
+                div {
+                    style: "font-size: 0.95rem; opacity: 0.9; display: flex; align-items: center; gap: 6px;",
+                    span { "📅" }
+                    span { "{due_date_str}" }
                 }
             }
-            
-            // Due date
+
+            // Badges row: due-in days and progress percent
             div {
-                style: "font-size: 0.95rem; opacity: 0.9;",
-                "📅 {due_date_str}"
+                style: "display: flex; align-items: center; gap: 12px; flex-wrap: wrap;",
+                span {
+                    style: "
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        background-color: rgba(255,255,255,0.14);
+                        padding: 6px 12px;
+                        border-radius: 9999px;
+                        font-size: 0.85rem;
+                    ",
+                    span { "🕒" }
+                    span { "{due_badge}" }
+                }
+                span {
+                    style: "
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        background-color: rgba(59,130,246,0.15);
+                        color: {bar_color};
+                        padding: 6px 12px;
+                        border-radius: 9999px;
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                    ",
+                    span { "✔" }
+                    span { "{(progress() as i32)}%" }
+                }
             }
             
             // Progress bar (draggable) with milestone markers
@@ -221,7 +271,13 @@ pub fn DeadlineItemView(deadline: Deadline) -> Element {
                         value: "{progress}",
                         oninput: move |evt| {
                             let val = evt.value().parse::<f32>().unwrap_or(progress());
-                            progress.set(val);
+                           let clamped = val.clamp(0.0, 100.0);
+                           progress.set(clamped);
+                           // propagate to parent with updated urgency
+                           let mut updated = deadline.clone();
+                           updated.progress = clamped.round() as u8;
+                           updated.update_urgency();
+                           on_update.call(updated);
                         },
                         style: "
                             position: absolute;
@@ -234,12 +290,6 @@ pub fn DeadlineItemView(deadline: Deadline) -> Element {
                         ",
                         aria_label: "Progress"
                     }
-                }
-
-                // Progress text on the right
-                span {
-                    style: "font-size: 0.85rem; text-align: right; font-weight: 500;",
-                    "{(progress() as i32)}%"
                 }
             }
             
