@@ -8,6 +8,8 @@ use views::{Blog, Home, Navbar};
 mod components;
 /// Define a model module that contains the data structures for our app.
 mod model;
+/// Persistence layer (backend-only): repository trait + Memory/SQLite implementations.
+mod persistence;
 /// Define a views module that contains the UI for all Layouts and Routes for our app.
 mod views;
 
