@@ -32,46 +32,48 @@ fn sorted_deadlines(input: &[Deadline], sort: SortType) -> Vec<Deadline> {
 }
 
 #[component]
-pub fn DeadlineListView(deadlines: Vec<Deadline>) -> Element {
+pub fn DeadlineListView(deadlines: Vec<Deadline>, mut on_update: EventHandler<Deadline>, mut on_edit: EventHandler<Deadline>) -> Element {
     let mut sort = use_signal(|| SortType::Urgency);
 
     let sorted = sorted_deadlines(&deadlines, sort());
 
     rsx! {
         div {
-            style: "display: flex; flex-direction: column; gap: 12px;",
+            class: "flex flex-col gap-4",
 
             // Sorting controls
             div {
-                style: "display: flex; gap: 8px; align-items: center; flex-wrap: wrap;",
-                span { style: "font-weight: 600;", "Sort:" }
+                class: "sort-controls",
+                span { class: "font-bold text-gray-600", style: "padding: 0 0.5rem;", "Sort by:" }
+                
                 button {
+                    class: if sort() == SortType::DueDate { "sort-btn active" } else { "sort-btn" },
                     onclick: move |_| sort.set(SortType::DueDate),
-                    disabled: sort() == SortType::DueDate,
                     "Due date"
                 }
                 button {
+                    class: if sort() == SortType::Urgency { "sort-btn active" } else { "sort-btn" },
                     onclick: move |_| sort.set(SortType::Urgency),
-                    disabled: sort() == SortType::Urgency,
                     "Urgency"
                 }
                 button {
+                    class: if sort() == SortType::Progress { "sort-btn active" } else { "sort-btn" },
                     onclick: move |_| sort.set(SortType::Progress),
-                    disabled: sort() == SortType::Progress,
                     "Progress"
                 }
             }
 
             // Render items
             div {
-                class: "deadline-list",
+                class: "flex flex-col gap-4",
                 { sorted.into_iter().map(|d| {
                     let id = d.id;
                     rsx! {
                         DeadlineItemView {
                             key: "{id}",
                             deadline: d,
-                            on_update: move |_| {}
+                            on_update: move |d| on_update.call(d),
+                            on_edit: move |d| on_edit.call(d),
                         }
                     }
                 }) }

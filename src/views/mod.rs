@@ -21,5 +21,8 @@ mod deadline_item_view;
 #[allow(unused_imports)]
 pub use deadline_item_view::DeadlineItemView;
 
+mod edit_deadline_view;
+pub use edit_deadline_view::EditDeadlineView;
+
 mod deadline_list_view;
 pub use deadline_list_view::DeadlineListView;

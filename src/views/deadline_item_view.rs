@@ -23,19 +23,6 @@ fn rgb_to_hex(rgb: (u8, u8, u8)) -> String {
     format!("#{:02x}{:02x}{:02x}", rgb.0, rgb.1, rgb.2)
 }
 
-fn rgb_to_rgba(rgb: (u8, u8, u8), a: f32) -> String {
-    format!("rgba({}, {}, {}, {})", rgb.0, rgb.1, rgb.2, a)
-}
-
-fn darken_rgb(rgb: (u8, u8, u8), amount: f32) -> (u8, u8, u8) {
-    let amt = amount.clamp(0.0, 1.0);
-    (
-        (rgb.0 as f32 * (1.0 - amt)).round() as u8,
-        (rgb.1 as f32 * (1.0 - amt)).round() as u8,
-        (rgb.2 as f32 * (1.0 - amt)).round() as u8,
-    )
-}
-
 /// Continuous color from urgency using piecewise-linear stops.
 /// Stops: 0 -> Blue(#3b82f6), 1 -> Yellow(#eab308), 5 -> Orange(#f97316), 10+ -> Red(#ef4444)
 fn color_from_urgency_rgb(urgency: f32) -> (u8, u8, u8) {
@@ -63,20 +50,12 @@ fn color_from_urgency_hex(urgency: f32) -> String {
     rgb_to_hex(color_from_urgency_rgb(urgency))
 }
 
-fn color_from_urgency_bg_rgba(urgency: f32, alpha: f32) -> String {
-    rgb_to_rgba(color_from_urgency_rgb(urgency), alpha)
-}
-
 #[component]
-pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Deadline>) -> Element {
+pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Deadline>, mut on_edit: EventHandler<Deadline>) -> Element {
     // Local, draggable progress state (0-100). If you want to persist upward, we can add a callback later.
     let mut progress = use_signal(|| deadline.progress as f32);
-    // Track hovered milestone index to show a custom tooltip above the marker
-    let mut hovered_marker = use_signal(|| None as Option<usize>);
-
+    
     let bar_color = color_from_urgency_hex(deadline.urgency);
-    let border_color = color_from_urgency_hex(deadline.urgency);
-    let bg_color = color_from_urgency_bg_rgba(deadline.urgency, 0.10);
     let due_date_str = deadline.due_date.to_string();
     // Calculate remaining days for the due badge
     let now = Datetime::now();
@@ -89,182 +68,74 @@ pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Dead
         format!("Due in {}d", diff.days)
     };
     let progress_width = move || format!("{}%", progress().clamp(0.0, 100.0));
+    let edit_clone = deadline.clone();
+    let update_clone = deadline.clone();
 
     rsx! {
         div {
-            style: "
-                border: 2px solid;
-                border-color: {border_color};
-                background-color: {bg_color};
-                border-radius: 8px;
-                padding: 16px;
-                margin: 12px 0;
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-            ",
-            // Header with title on the left, due date on the top-right
+            class: "card flex flex-col gap-4",
+            
+            // Header
             div {
-                style: "display: flex; justify-content: space-between; align-items: center; gap: 12px;",
-                // Title with a subtle icon
+                class: "flex justify-between items-center",
                 div {
-                    style: "display: flex; align-items: center; gap: 8px;",
-                    span { "⚡" }
-                    h3 {
-                        style: "margin: 0; font-size: 1.25rem; font-weight: 600;",
-                        "{deadline.name}"
-                    }
+                    class: "flex flex-col",
+                    h3 { class: "text-xl font-bold", "{deadline.name}" }
+                    span { class: "text-sm text-gray-500", "{due_date_str}" }
                 }
-
-                // Right-top due date label
-                div {
-                    style: "font-size: 0.95rem; opacity: 0.9; display: flex; align-items: center; gap: 6px;",
-                    span { "📅" }
-                    span { "{due_date_str}" }
-                }
-            }
-
-            // Badges row: due-in days and progress percent
-            div {
-                style: "display: flex; align-items: center; gap: 12px; flex-wrap: wrap;",
-                span {
-                    style: "
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 6px;
-                        background-color: rgba(255,255,255,0.14);
-                        padding: 6px 12px;
-                        border-radius: 9999px;
-                        font-size: 0.85rem;
-                    ",
-                    span { "🕒" }
-                    span { "{due_badge}" }
-                }
-                span {
-                    style: "
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 6px;
-                        background-color: rgba(59,130,246,0.15);
-                        color: {bar_color};
-                        padding: 6px 12px;
-                        border-radius: 9999px;
-                        font-size: 0.85rem;
-                        font-weight: 600;
-                    ",
-                    span { "✔" }
-                    span { "{(progress() as i32)}%" }
-                }
-            }
-
-            // Progress bar (draggable) with milestone markers
-            div {
-                style: "display: flex; flex-direction: column; gap: 6px;",
-                // Slider container (relative) so we can absolutely position markers
-                div {
-                    style: "
-                        position: relative;
-                        width: 100%;
-                        height: 16px;
-                    ",
-                    // Visible custom track
-                    div {
-                        style: "
-                            position: absolute;
-                            inset: 4px 0; /* center vertically with small padding */
-                            height: 8px;
-                            border-radius: 4px;
-                            background-color: rgba(255, 255, 255, 0.12);
-                            overflow: hidden;
-                            z-index: 0;
-                        ",
-                        div {
-                            style: "
-                                width: {progress_width()};
-                                height: 100%;
-                                background-color: {bar_color};
-                                transition: width 0.06s linear;
-                            "
+                button {
+                    class: "btn-icon",
+                    onclick: move |_| on_edit.call(edit_clone.clone()),
+                    // Edit Icon (SVG)
+                    svg {
+                        width: "20",
+                        height: "20",
+                        fill: "none",
+                        stroke: "currentColor",
+                        view_box: "0 0 24 24",
+                        path {
+                            stroke_linecap: "round",
+                            stroke_linejoin: "round",
+                            stroke_width: "2",
+                            d: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                         }
                     }
+                }
+            }
 
-                    // Milestone markers over the bar
-                    {
-                        deadline.milestones.iter().enumerate().map(|(idx, (pct, desc))| {
-                            let left = (*pct as f32).clamp(0.0, 100.0);
-                            let marker_rgb = darken_rgb(color_from_urgency_rgb(deadline.urgency), 0.4);
-                            let marker_color = rgb_to_hex(marker_rgb);
-                            let desc_text = desc.clone();
-                            let pct_value = *pct as f32;
-                            rsx! {
-                                // Wrapper hit-area to ensure hover shows the tooltip above the input overlay
-                                div {
-                                    key: "{idx}",
-                                    style: "
-                                        position: absolute;
-                                        left: calc({left}% - 10px);
-                                        top: 0px;
-                                        width: 20px; /* larger hover/click area */
-                                        height: 20px;
-                                        z-index: 2;
-                                        background: transparent;
-                                        cursor: pointer;
-                                    ",
-                                    onmouseenter: move |_| hovered_marker.set(Some(idx)),
-                                    onmouseleave: move |_| hovered_marker.set(None),
-                                    onclick: move |_| progress.set(pct_value),
+            // Badges
+            div {
+                class: "flex gap-2",
+                style: "flex-wrap: wrap;",
+                span {
+                    class: if diff.is_negative { "badge badge-red" } else { "badge badge-blue" },
+                    "{due_badge}"
+                }
+                span {
+                    class: "badge badge-gray",
+                    "Difficulty: {deadline.difficulty}"
+                }
+            }
 
-                                    // Actual thin marker centered inside
-                                    div {
-                                        style: "
-                                            position: absolute;
-                                            left: 50%;
-                                            top: 2px;
-                                            transform: translateX(-1px);
-                                            width: 2px;
-                                            height: 12px;
-                                            background-color: {marker_color};
-                                            border-radius: 1px;
-                                            opacity: 0.98;
-                                            box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
-                                            pointer-events: none; /* let wrapper receive hover/click */
-                                        "
-                                    }
-
-                                    // Tooltip above the marker when hovered
-                                    {
-                                        if hovered_marker() == Some(idx) {
-                                            rsx! {
-                                                div {
-                                                    style: "
-                                                        position: absolute;
-                                                        left: 50%;
-                                                        top: -6px;
-                                                        transform: translate(-50%, -100%);
-                                                        padding: 2px 6px;
-                                                        background: rgba(0,0,0,0.8);
-                                                        color: #fff;
-                                                        font-size: 0.75rem;
-                                                        line-height: 1rem;
-                                                        border: 1px solid {marker_color};
-                                                        border-radius: 4px;
-                                                        white-space: nowrap;
-                                                        z-index: 3;
-                                                        pointer-events: none;
-                                                    ",
-                                                    "{desc_text}"
-                                                }
-                                            }
-                                        } else {
-                                            rsx! { div { } }
-                                        }
-                                    }
-                                }
-                            }
-                        })
+            // Progress Bar
+            div {
+                class: "progress-container",
+                div {
+                    class: "progress-header",
+                    div {
+                        span { class: "progress-label", "Progress" }
                     }
-
-                    // Invisible range input overlay to capture drag
+                    div {
+                        span { class: "text-xs font-bold", style: "color: var(--primary-600);", "{progress().round()}%" }
+                    }
+                }
+                div {
+                    class: "progress-track",
+                    div {
+                        class: "progress-fill",
+                        style: "width: {progress_width()}; background-color: {bar_color};",
+                    }
+                    // Input overlay for dragging
                     input {
                         r#type: "range",
                         min: "0",
@@ -275,40 +146,27 @@ pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Dead
                             let val = evt.value().parse::<f32>().unwrap_or(progress());
                            let clamped = val.clamp(0.0, 100.0);
                            progress.set(clamped);
-                           // propagate to parent with updated urgency
-                           deadline.progress = clamped.round() as u8;
-                           deadline.update_urgency();
-                           on_update.call(deadline.clone());
+                           let mut d = update_clone.clone();
+                           d.progress = clamped.round() as u8;
+                           d.update_urgency();
+                           on_update.call(d);
                         },
-                        style: "
-                            position: absolute;
-                            inset: 0;
-                            width: 100%;
-                            height: 16px;
-                            opacity: 0; /* keep it invisible but interactive */
-                            cursor: pointer;
-                            z-index: 1;
-                        ",
-                        aria_label: "Progress"
+                        class: "range-input",
                     }
                 }
             }
 
-            // Tags (if any)
+            // Tags
             if !deadline.tags.is_empty() {
                 div {
-                    style: "display: flex; flex-wrap: wrap; gap: 8px;",
+                    class: "flex gap-2",
+                    style: "flex-wrap: wrap; margin-top: auto;",
                     {
                         deadline.tags.iter().enumerate().map(|(idx, tag)| {
                             rsx! {
                                 span {
                                     key: "{idx}",
-                                    style: "
-                                        background-color: rgba(255, 255, 255, 0.1);
-                                        padding: 4px 10px;
-                                        border-radius: 12px;
-                                        font-size: 0.8rem;
-                                    ",
+                                    class: "badge badge-gray",
                                     "{tag}"
                                 }
                             }
