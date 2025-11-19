@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use std::cmp::Ordering;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
@@ -13,15 +14,28 @@ pub struct TimeDiff {
 impl TimeDiff {
     pub fn to_hours(&self) -> f32 {
         let total = (self.days as f32 * 24.0) + (self.hours as f32) + (self.minutes as f32 / 60.0);
-        if self.is_negative { -total } else { total }
+        if self.is_negative {
+            -total
+        } else {
+            total
+        }
     }
     pub fn to_minutes(&self) -> i32 {
         let total = (self.days * 24 * 60) + (self.hours as i32 * 60) + (self.minutes as i32);
-        if self.is_negative { -total } else { total }
+        if self.is_negative {
+            -total
+        } else {
+            total
+        }
     }
     pub fn to_days(&self) -> f32 {
-        let total = (self.days as f32) + (self.hours as f32 / 24.0) + (self.minutes as f32 / 1440.0);
-        if self.is_negative { -total } else { total }
+        let total =
+            (self.days as f32) + (self.hours as f32 / 24.0) + (self.minutes as f32 / 1440.0);
+        if self.is_negative {
+            -total
+        } else {
+            total
+        }
     }
     pub fn to_string(&self) -> String {
         let sign = if self.is_negative { "-" } else { "" };
@@ -40,7 +54,7 @@ pub struct Datetime {
 }
 #[allow(dead_code)]
 impl Datetime {
-    pub fn new(year: u16 , month: u8, day: u8, hour: u8, minute: u8) -> Self {
+    pub fn new(year: u16, month: u8, day: u8, hour: u8, minute: u8) -> Self {
         Self {
             year,
             month,
@@ -63,7 +77,10 @@ impl Datetime {
     }
 
     pub fn to_string(&self) -> String {
-        format!("{:04}-{:02}-{:02} {:02}:{:02}", self.year, self.month, self.day, self.hour, self.minute)
+        format!(
+            "{:04}-{:02}-{:02} {:02}:{:02}",
+            self.year, self.month, self.day, self.hour, self.minute
+        )
     }
 
     /// calculate time difference
@@ -71,15 +88,15 @@ impl Datetime {
         // to minutes
         let self_total_minutes = self.to_total_minutes();
         let other_total_minutes = other.to_total_minutes();
-        
+
         let diff_minutes = self_total_minutes - other_total_minutes;
         let is_negative = diff_minutes < 0;
         let abs_minutes = diff_minutes.abs();
-        
+
         let days = (abs_minutes / (24 * 60)) as i32;
         let hours = ((abs_minutes % (24 * 60)) / 60) as i8;
         let minutes = (abs_minutes % 60) as i8;
-        
+
         TimeDiff {
             days,
             hours,
@@ -91,8 +108,14 @@ impl Datetime {
     /// to total minutes
     pub fn to_total_minutes(&self) -> i64 {
         let days_in_month = 30;
-        let total_days = (self.year as i64 * 365) + ((self.month as i64 - 1) * days_in_month) + (self.day as i64);
+        let total_days = (self.year as i64 * 365)
+            + ((self.month as i64 - 1) * days_in_month)
+            + (self.day as i64);
         let total_minutes = (total_days * 24 * 60) + (self.hour as i64 * 60) + (self.minute as i64);
         total_minutes
+    }
+
+    pub fn cmp(&self, other: &Datetime) -> Ordering {
+        self.to_total_minutes().cmp(&other.to_total_minutes())
     }
 }

@@ -1,13 +1,14 @@
 use crate::components::{Echo, Hero};
-use crate::model::{Deadline, datetime};
-use crate::views::DeadlineItemView;
+use crate::model::{datetime, Deadline};
+
+use crate::views::DeadlineListView;
 use dioxus::prelude::*;
 
 /// The Home page component that will be rendered when the current route is `[Route::Home]`
 #[component]
 pub fn Home() -> Element {
     // Create sample deadlines for demonstration
-    let mut deadline1 = use_signal(|| Deadline {
+    let deadline1 = use_signal(|| Deadline {
         id: 1,
         name: "DSAA Project".to_string(),
         due_date: datetime::Datetime {
@@ -23,8 +24,8 @@ pub fn Home() -> Element {
         urgency: 5.5,
         tags: vec!["Important".to_string(), "Academic".to_string()],
     });
-    
-    let mut deadline2 = use_signal(|| Deadline {
+
+    let deadline2 = use_signal(|| Deadline {
         id: 2,
         name: "Physics Exam".to_string(),
         due_date: datetime::Datetime {
@@ -36,12 +37,15 @@ pub fn Home() -> Element {
         },
         difficulty: 7,
         progress: 45,
-        milestones: vec![(25, "Review Chapters 1-3".to_string()), (75, "Full Practice Test".to_string())],
+        milestones: vec![
+            (25, "Review Chapters 1-3".to_string()),
+            (75, "Full Practice Test".to_string()),
+        ],
         urgency: 2.3,
         tags: vec!["Exam".to_string()],
     });
-    
-    let mut deadline3 = use_signal(|| Deadline {
+
+    let deadline3 = use_signal(|| Deadline {
         id: 3,
         name: "Low Priority Task".to_string(),
         due_date: datetime::Datetime {
@@ -58,16 +62,16 @@ pub fn Home() -> Element {
         tags: vec!["Optional".to_string()],
     });
 
+    let deadlines: Vec<Deadline> = vec![deadline1(), deadline2(), deadline3()];
+
     rsx! {
         Hero {}
         Echo {}
-        
+
         div {
             style: "padding: 20px;",
             h2 { "Your Deadlines" }
-            DeadlineItemView { deadline: deadline1(), on_update: move |d: Deadline| deadline1.set(d) }
-            DeadlineItemView { deadline: deadline2(), on_update: move |d: Deadline| deadline2.set(d) }
-            DeadlineItemView { deadline: deadline3(), on_update: move |d: Deadline| deadline3.set(d) }
+            DeadlineListView { deadlines }
         }
     }
 }

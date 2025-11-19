@@ -1,12 +1,14 @@
-use dioxus::prelude::*;
-use crate::model::Deadline;
 use crate::model::datetime::Datetime;
+use crate::model::Deadline;
+use dioxus::prelude::*;
 
 // --- Continuous color utilities ---
 // We map urgency (0..∞) to a continuous gradient through Blue -> Yellow -> Orange -> Red
 // using linear RGB interpolation between the stop colors.
 
-fn lerp(a: f32, b: f32, t: f32) -> f32 { a + (b - a) * t }
+fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
+}
 
 fn lerp_rgb(a: (u8, u8, u8), b: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
     let t = t.clamp(0.0, 1.0);
@@ -66,7 +68,7 @@ fn color_from_urgency_bg_rgba(urgency: f32, alpha: f32) -> String {
 }
 
 #[component]
-pub fn DeadlineItemView(deadline: Deadline, on_update: EventHandler<Deadline>) -> Element {
+pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Deadline>) -> Element {
     // Local, draggable progress state (0-100). If you want to persist upward, we can add a callback later.
     let mut progress = use_signal(|| deadline.progress as f32);
     // Track hovered milestone index to show a custom tooltip above the marker
@@ -154,7 +156,7 @@ pub fn DeadlineItemView(deadline: Deadline, on_update: EventHandler<Deadline>) -
                     span { "{(progress() as i32)}%" }
                 }
             }
-            
+
             // Progress bar (draggable) with milestone markers
             div {
                 style: "display: flex; flex-direction: column; gap: 6px;",
@@ -274,10 +276,9 @@ pub fn DeadlineItemView(deadline: Deadline, on_update: EventHandler<Deadline>) -
                            let clamped = val.clamp(0.0, 100.0);
                            progress.set(clamped);
                            // propagate to parent with updated urgency
-                           let mut updated = deadline.clone();
-                           updated.progress = clamped.round() as u8;
-                           updated.update_urgency();
-                           on_update.call(updated);
+                           deadline.progress = clamped.round() as u8;
+                           deadline.update_urgency();
+                           on_update.call(deadline.clone());
                         },
                         style: "
                             position: absolute;
@@ -292,7 +293,7 @@ pub fn DeadlineItemView(deadline: Deadline, on_update: EventHandler<Deadline>) -
                     }
                 }
             }
-            
+
             // Tags (if any)
             if !deadline.tags.is_empty() {
                 div {
