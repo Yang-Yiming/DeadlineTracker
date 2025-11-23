@@ -1,6 +1,6 @@
 use crate::model::{datetime, Deadline};
 use crate::persistence::{HomeworkRepo, NewHomework};
-use crate::views::{DeadlineListView, EditDeadlineView};
+use crate::views::{DeadlineListView, EditDeadlineView, CalendarView};
 use dioxus::prelude::*;
 use std::sync::Arc;
 
@@ -10,6 +10,7 @@ pub fn Home() -> Element {
     let repo = use_context::<Arc<dyn HomeworkRepo>>();
     let mut deadlines_state = use_signal(Vec::<Deadline>::new);
     let mut selected = use_signal(|| Option::<Deadline>::None);
+    let mut is_calendar_view = use_signal(|| false);
     
     // Signal to trigger reload
     let mut reload_trigger = use_signal(|| 0);
@@ -46,7 +47,7 @@ pub fn Home() -> Element {
         div {
             class: "layout-grid",
             
-            // Left Column: Deadline List
+            // Left Column: Deadline List or Calendar
             div {
                 class: "flex flex-col gap-6",
                 
@@ -54,37 +55,63 @@ pub fn Home() -> Element {
                 div {
                     class: "flex justify-between items-center",
                     h2 { class: "text-2xl font-bold", "Your Deadlines" }
-                    button {
-                        class: "btn btn-primary",
-                        onclick: move |_| {
-                            let new_deadline = Deadline::new("".to_string(), "".to_string(), datetime::Datetime::now(), 5);
-                            selected.set(Some(new_deadline));
-                        },
-                        "New Deadline"
+                    div { class: "flex items-center gap-2",
+                        button {
+                            class: if is_calendar_view() { "btn btn-primary" } else { "btn btn-ghost p-2" },
+                            title: if is_calendar_view() { "Switch to List" } else { "Switch to Calendar" },
+                            onclick: move |_| {
+                                is_calendar_view.set(!is_calendar_view());
+                                selected.set(None);
+                            },
+                            if is_calendar_view() { "📝 List" } else { "📅 Calendar" }
+                        }
+                        button {
+                            class: "btn btn-primary",
+                            onclick: move |_| {
+                                let new_deadline = Deadline::new("".to_string(), "".to_string(), datetime::Datetime::now(), 5);
+                                selected.set(Some(new_deadline));
+                            },
+                            "New Deadline"
+                        }
                     }
                 }
 
-                DeadlineListView { 
-                    deadlines: deadlines_state().clone(), 
-                    on_update: {
-                        let repo = repo.clone();
-                        move |d: Deadline| {
-                            let repo = repo.clone();
-                            spawn(async move {
-                                if let Ok(Some(mut rec)) = repo.get(&d.id) {
-                                    rec.name = d.name;
-                                    rec.due_text = d.due_date.to_string();
-                                    rec.difficulty = d.difficulty;
-                                    rec.progress = d.progress;
-                                    rec.tags = d.tags;
-                                    rec.milestones = d.milestones;
-                                    let _ = repo.update(rec);
-                                    reload_trigger.with_mut(|x| *x += 1);
-                                }
-                            });
+                if is_calendar_view() {
+                    CalendarView {
+                        deadlines: deadlines_state().clone(),
+                        on_select_date: move |dt: datetime::Datetime| {
+                            let new_deadline = Deadline::new("".to_string(), "".to_string(), dt, 5);
+                            selected.set(Some(new_deadline));
+                        },
+                        on_edit_deadline: move |d: Deadline| {
+                            selected.set(Some(d));
                         }
-                    }, 
-                    on_edit: move |d: Deadline| selected.set(Some(d)) 
+                    }
+                } else {
+                    DeadlineListView { 
+                        deadlines: deadlines_state().clone(), 
+                        on_update: {
+                            let repo = repo.clone();
+                            move |d: Deadline| {
+                                let repo = repo.clone();
+                                spawn(async move {
+                                    if let Ok(Some(mut rec)) = repo.get(&d.id) {
+                                        rec.name = d.name;
+                                        rec.due_text = d.due_date.to_string();
+                                        rec.difficulty = d.difficulty;
+                                        rec.progress = d.progress;
+                                        rec.tags = d.tags;
+                                        rec.milestones = d.milestones;
+                                        let _ = repo.update(rec);
+                                        reload_trigger.with_mut(|x| *x += 1);
+                                    }
+                                });
+                            }
+                        }, 
+                        on_edit: move |d: Deadline| {
+                            selected.set(Some(d));
+                        }
+                    }
                 }
             }
             

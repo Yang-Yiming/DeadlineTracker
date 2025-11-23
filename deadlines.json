@@ -1,0 +1,30 @@
+[
+  {
+    "uid": "01KAQWPRX2B3MH0Q5VT2255CM6",
+    "name": "DSAA",
+    "due_text": "2025-11-25 16:00",
+    "difficulty": 8,
+    "progress": 0,
+    "tags": [
+      "Homework"
+    ],
+    "milestones": [],
+    "deleted": false,
+    "created_at": 1763885933,
+    "updated_at": 1763885933,
+    "schema_version": 1
+  },
+  {
+    "uid": "01KAQWQ2GYVWG9AXEBREV04FNN",
+    "name": "Test2",
+    "due_text": "2025-12-23 16:18",
+    "difficulty": 5,
+    "progress": 0,
+    "tags": [],
+    "milestones": [],
+    "deleted": false,
+    "created_at": 1763885943,
+    "updated_at": 1763885943,
+    "schema_version": 1
+  }
+]
