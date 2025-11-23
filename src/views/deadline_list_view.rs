@@ -67,11 +67,12 @@ pub fn DeadlineListView(deadlines: Vec<Deadline>, mut on_update: EventHandler<De
             div {
                 class: "flex flex-col gap-4",
                 { sorted.into_iter().map(|d| {
-                    let id = d.id;
+                    let deadline_clone = d.clone();
+                    let id = deadline_clone.id.clone();
                     rsx! {
                         DeadlineItemView {
                             key: "{id}",
-                            deadline: d,
+                            deadline: deadline_clone,
                             on_update: move |d| on_update.call(d),
                             on_edit: move |d| on_edit.call(d),
                         }

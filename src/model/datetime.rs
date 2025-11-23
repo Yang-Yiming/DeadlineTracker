@@ -83,6 +83,26 @@ impl Datetime {
         )
     }
 
+    pub fn from_string(s: &str) -> Option<Self> {
+        // Expected format: "YYYY-MM-DD HH:MM"
+        let parts: Vec<&str> = s.split(' ').collect();
+        if parts.len() != 2 { return None; }
+        
+        let date_parts: Vec<&str> = parts[0].split('-').collect();
+        if date_parts.len() != 3 { return None; }
+        
+        let time_parts: Vec<&str> = parts[1].split(':').collect();
+        if time_parts.len() != 2 { return None; }
+        
+        let year = date_parts[0].parse().ok()?;
+        let month = date_parts[1].parse().ok()?;
+        let day = date_parts[2].parse().ok()?;
+        let hour = time_parts[0].parse().ok()?;
+        let minute = time_parts[1].parse().ok()?;
+        
+        Some(Self { year, month, day, hour, minute })
+    }
+
     /// calculate time difference
     pub fn time_diff(&self, other: &Datetime) -> TimeDiff {
         // to minutes

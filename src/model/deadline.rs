@@ -2,7 +2,7 @@ use super::datetime::Datetime;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Deadline {
-    pub id: u32,
+    pub id: String,
     pub name: String,
     pub due_date: Datetime,
     pub difficulty: u8,
@@ -14,7 +14,7 @@ pub struct Deadline {
 
 #[allow(dead_code)]
 impl Deadline {
-    pub fn new(id: u32, name: String, due_date: Datetime, difficulty: u8) -> Self {
+    pub fn new(id: String, name: String, due_date: Datetime, difficulty: u8) -> Self {
         Self {
             id,
             name,

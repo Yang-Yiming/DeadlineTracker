@@ -6,7 +6,7 @@
 pub mod types;
 pub mod repo;
 pub mod memory;
-pub mod sqlite;
+pub mod json;
 
 pub use repo::{init_repo, HomeworkRepo, RepoError};
 pub use types::{HomeworkRecord, NewHomework, Patch};

@@ -1,52 +1,46 @@
 use crate::model::{datetime, Deadline};
-
+use crate::persistence::{HomeworkRepo, NewHomework};
 use crate::views::{DeadlineListView, EditDeadlineView};
 use dioxus::prelude::*;
+use std::sync::Arc;
 
 /// The Home page component that will be rendered when the current route is `[Route::Home]`
 #[component]
 pub fn Home() -> Element {
-    // Create sample deadlines for demonstration and store them in state
-    let mut deadlines_state = use_signal(|| {
-        let d1 = Deadline {
-            id: 1,
-            name: "DSAA Project".to_string(),
-            due_date: datetime::Datetime { year: 2025, month: 11, day: 4, hour: 16, minute: 0 },
-            difficulty: 8,
-            progress: 80,
-            milestones: vec![(50, "Midpoint Review".to_string())],
-            urgency: 5.5,
-            tags: vec!["Important".to_string(), "Academic".to_string()],
-        };
-        let d2 = Deadline {
-            id: 2,
-            name: "Physics Exam".to_string(),
-            due_date: datetime::Datetime { year: 2025, month: 11, day: 6, hour: 10, minute: 0 },
-            difficulty: 7,
-            progress: 45,
-            milestones: vec![(25, "Review Chapters 1-3".to_string()), (75, "Full Practice Test".to_string())],
-            urgency: 2.3,
-            tags: vec!["Exam".to_string()],
-        };
-        let d3 = Deadline {
-            id: 3,
-            name: "Low Priority Task".to_string(),
-            due_date: datetime::Datetime { year: 2025, month: 11, day: 15, hour: 23, minute: 59 },
-            difficulty: 3,
-            progress: 10,
-            milestones: vec![],
-            urgency: 0.5,
-            tags: vec!["Optional".to_string()],
-        };
-        vec![d1, d2, d3]
-    });
-
-    // Selected deadline for editing
+    let repo = use_context::<Arc<dyn HomeworkRepo>>();
+    let mut deadlines_state = use_signal(Vec::<Deadline>::new);
     let mut selected = use_signal(|| Option::<Deadline>::None);
+    
+    // Signal to trigger reload
+    let mut reload_trigger = use_signal(|| 0);
 
-    // inline handlers will be used below for clarity
-
-    // cancel is handled inline when rendering the EditDeadlineView
+    use_effect({
+        let repo = repo.clone();
+        move || {
+            let _ = reload_trigger(); // Subscribe
+            let repo = repo.clone();
+            spawn(async move {
+                if let Ok(records) = repo.list() {
+                    let deadlines: Vec<Deadline> = records.into_iter().map(|r| {
+                        let due_date = datetime::Datetime::from_string(&r.due_text).unwrap_or_else(datetime::Datetime::now);
+                        let mut d = Deadline {
+                            id: r.uid,
+                            name: r.name,
+                            due_date,
+                            difficulty: r.difficulty,
+                            progress: r.progress,
+                            milestones: r.milestones,
+                            urgency: 0.0,
+                            tags: r.tags,
+                        };
+                        d.update_urgency();
+                        d
+                    }).collect();
+                    deadlines_state.set(deadlines);
+                }
+            });
+        }
+    });
 
     rsx! {
         div {
@@ -63,20 +57,35 @@ pub fn Home() -> Element {
                     button {
                         class: "btn btn-primary",
                         onclick: move |_| {
-                            let new_deadline = Deadline::new(0, "".to_string(), datetime::Datetime::now(), 5);
+                            let new_deadline = Deadline::new("".to_string(), "".to_string(), datetime::Datetime::now(), 5);
                             selected.set(Some(new_deadline));
                         },
                         "New Deadline"
                     }
                 }
 
-                DeadlineListView { deadlines: deadlines_state().clone(), on_update: move |d: Deadline| {
-                    let mut v = deadlines_state().clone();
-                    for dd in v.iter_mut() {
-                        if dd.id == d.id { *dd = d.clone(); }
-                    }
-                    deadlines_state.set(v);
-                }, on_edit: move |d: Deadline| selected.set(Some(d)) }
+                DeadlineListView { 
+                    deadlines: deadlines_state().clone(), 
+                    on_update: {
+                        let repo = repo.clone();
+                        move |d: Deadline| {
+                            let repo = repo.clone();
+                            spawn(async move {
+                                if let Ok(Some(mut rec)) = repo.get(&d.id) {
+                                    rec.name = d.name;
+                                    rec.due_text = d.due_date.to_string();
+                                    rec.difficulty = d.difficulty;
+                                    rec.progress = d.progress;
+                                    rec.tags = d.tags;
+                                    rec.milestones = d.milestones;
+                                    let _ = repo.update(rec);
+                                    reload_trigger.with_mut(|x| *x += 1);
+                                }
+                            });
+                        }
+                    }, 
+                    on_edit: move |d: Deadline| selected.set(Some(d)) 
+                }
             }
             
             // Right Column: Edit Panel or Stats
@@ -84,16 +93,42 @@ pub fn Home() -> Element {
                 class: "card",
                 style: "position: sticky; top: 1rem;",
                 if let Some(sel) = selected().clone() {
-                    EditDeadlineView { key: "{sel.id}", deadline: sel.clone(), on_save: move |d: Deadline| {
-                        let mut v = deadlines_state().clone();
-                        let mut found = false;
-                        for slot in v.iter_mut() {
-                            if slot.id == d.id { *slot = d.clone(); found = true; break; }
-                        }
-                        if !found { let mut newd = d.clone(); let next_id = v.iter().map(|x| x.id).max().unwrap_or(0) + 1; newd.id = next_id; v.push(newd); }
-                        deadlines_state.set(v);
-                        selected.set(None);
-                    }, on_cancel: move |_| selected.set(None) }
+                    EditDeadlineView { 
+                        key: "{sel.id}", 
+                        deadline: sel.clone(), 
+                        on_save: {
+                            let repo = repo.clone();
+                            move |d: Deadline| {
+                                let repo = repo.clone();
+                                spawn(async move {
+                                    if d.id.is_empty() {
+                                        let payload = NewHomework {
+                                            name: d.name,
+                                            due_text: d.due_date.to_string(),
+                                            difficulty: d.difficulty,
+                                            progress: d.progress,
+                                            tags: d.tags,
+                                            milestones: d.milestones,
+                                        };
+                                        let _ = repo.create(payload);
+                                    } else {
+                                        if let Ok(Some(mut rec)) = repo.get(&d.id) {
+                                            rec.name = d.name;
+                                            rec.due_text = d.due_date.to_string();
+                                            rec.difficulty = d.difficulty;
+                                            rec.progress = d.progress;
+                                            rec.tags = d.tags;
+                                            rec.milestones = d.milestones;
+                                            let _ = repo.update(rec);
+                                        }
+                                    }
+                                    reload_trigger.with_mut(|x| *x += 1);
+                                    selected.set(None);
+                                });
+                            }
+                        }, 
+                        on_cancel: move |_| selected.set(None) 
+                    }
                 } else {
                     // Statistics View
                     {

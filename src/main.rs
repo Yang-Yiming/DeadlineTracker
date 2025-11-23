@@ -1,6 +1,8 @@
 // The dioxus prelude contains a ton of common items used in dioxus apps. It's a good idea to import wherever you
 // need dioxus
 use dioxus::prelude::*;
+use std::path::PathBuf;
+use persistence::init_repo;
 
 use views::{Blog, Home, Navbar};
 
@@ -55,6 +57,11 @@ fn main() {
 /// Components should be annotated with `#[component]` to support props, better error messages, and autocomplete
 #[component]
 fn App() -> Element {
+    use_context_provider(|| {
+        let dir = std::env::current_dir().unwrap_or(PathBuf::from("."));
+        init_repo(Some(dir)).expect("failed to init repo")
+    });
+
     // The `rsx!` macro lets us define HTML inside of rust. It expands to an Element with all of our HTML inside.
     rsx! {
         // In addition to element and text (which we will see later), rsx can contain other components. In this case,
