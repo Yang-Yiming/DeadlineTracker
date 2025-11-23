@@ -29,7 +29,7 @@ pub fn EditDeadlineView(
     let mut name = use_signal(|| deadline.name.clone());
     let mut due = use_signal(|| deadline.due_date.to_string());
     let mut difficulty = use_signal(|| deadline.difficulty);
-    let mut progress = use_signal(|| deadline.progress);
+    // progress removed from edit UI per user request
     let mut tags = use_signal(|| deadline.tags.join(", "));
 
     rsx! {
@@ -81,21 +81,7 @@ pub fn EditDeadlineView(
                     },
                 }
             }
-            div {
-                class: "form-group",
-                label { class: "form-label", "Progress ({progress}%)" }
-                input {
-                    r#type: "range",
-                    min: "0",
-                    max: "100",
-                    class: "w-full",
-                    style: "cursor: pointer;",
-                    value: "{progress}",
-                    oninput: move |e| {
-                        if let Ok(v) = e.value().parse::<u8>() { progress.set(v); }
-                    },
-                }
-            }
+            // Progress control intentionally removed from the edit panel
             div {
                 class: "form-group",
                 label { class: "form-label", "Tags (comma separated)" }
@@ -123,7 +109,7 @@ pub fn EditDeadlineView(
                             new.name = name();
                             new.due_date = parsed;
                             new.difficulty = difficulty();
-                            new.progress = progress();
+                            // Keep existing progress value; do not modify from this view
                             new.tags = tags().split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
                             new.update_urgency();
                             on_save.call(new);

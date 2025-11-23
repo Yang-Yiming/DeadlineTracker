@@ -50,12 +50,26 @@ fn color_from_urgency_hex(urgency: f32) -> String {
     rgb_to_hex(color_from_urgency_rgb(urgency))
 }
 
+/// Return a light RGBA tint for the card background based on urgency.
+/// We use the base color from `color_from_urgency_rgb` and apply a small alpha.
+fn card_tint_from_urgency(urgency: f32) -> String {
+    let (r, g, b) = color_from_urgency_rgb(urgency);
+    // Choose alpha based on urgency; min 0.03, max 0.16 (subtle tint)
+    let mut a = urgency / 20.0; // 0..∞ => 0..∞; but we'll clamp
+    if a < 0.03 { a = 0.03 }
+    if a > 0.16 { a = 0.16 }
+    format!("rgba({}, {}, {}, {:.3})", r, g, b, a)
+}
+
 #[component]
 pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Deadline>, mut on_edit: EventHandler<Deadline>) -> Element {
     // Local, draggable progress state (0-100). If you want to persist upward, we can add a callback later.
     let mut progress = use_signal(|| deadline.progress as f32);
     
     let bar_color = color_from_urgency_hex(deadline.urgency);
+    let card_tint = card_tint_from_urgency(deadline.urgency);
+    let (r, g, b) = color_from_urgency_rgb(deadline.urgency);
+    let border_color = format!("rgba({}, {}, {}, {:.3})", r, g, b, 0.12);
     let due_date_str = deadline.due_date.to_string();
     // Calculate remaining days for the due badge
     let now = Datetime::now();
@@ -74,6 +88,7 @@ pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Dead
     rsx! {
         div {
             class: "card flex flex-col gap-4",
+            style: "background-color: {card_tint}; border-color: {border_color};",
             
             // Header
             div {
