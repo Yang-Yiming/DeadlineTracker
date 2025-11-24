@@ -35,3 +35,12 @@ inherits = "dev"
 
 [profile.android-dev]
 inherits = "dev"
+
+[package.metadata.bundle]
+name = "Deadline Tracker"
+identifier = "com.yangyiming.deadlinetracker"
+icon = []
+resources = ["deadlines.json"]
+category = "Productivity"
+short-description = "Simple cross-platform deadline tracker"
+long-description = "Deadline Tracker is a Dioxus-based desktop client for keeping up with your commitments across platforms."

@@ -17,21 +17,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            label: linux
-            binary_path: target/release/deadline-tracker
-            binary_name: deadline-tracker
-            artifact_ext: tar.gz
           - os: macos-latest
             label: macos
-            binary_path: target/release/deadline-tracker
-            binary_name: deadline-tracker
-            artifact_ext: tar.gz
+            artifact_ext: dmg
           - os: windows-latest
             label: windows
-            binary_path: target/release/deadline-tracker.exe
-            binary_name: deadline-tracker.exe
-            artifact_ext: zip
+            artifact_ext: msi
 
     steps:
       - name: Checkout repository
@@ -45,58 +36,72 @@ jobs:
         with:
           shared-key: desktop-release-${{ matrix.label }}
 
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            libsoup-3.0-dev
+      - name: Install cargo-bundle
+        run: cargo install cargo-bundle --locked
 
-      - name: Build desktop binary
-        run: cargo build --release --features desktop
+      - name: Install WiX Toolset
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install wixtoolset --version 3.11.2 -y
 
-      - name: Determine archive name
-        id: archive_meta
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "archive=deadline-tracker-${{ matrix.label }}-${RELEASE_VERSION}.${{ matrix.artifact_ext }}" >> "$GITHUB_OUTPUT"
+      - name: Bundle macOS app
+        if: runner.os == 'macOS'
+        run: cargo bundle --release --features desktop
 
-      - name: Package binary (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          set -euo pipefail
-          BIN_PATH="${{ matrix.binary_path }}"
-          BIN_NAME="${{ matrix.binary_name }}"
-          ARCHIVE_NAME="${{ steps.archive_meta.outputs.archive }}"
-          mkdir -p package
-          cp "$BIN_PATH" "package/$BIN_NAME"
-          tar -C package -czf "$ARCHIVE_NAME" "$BIN_NAME"
-
-      - name: Package binary (Windows)
+      - name: Bundle Windows app
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $binPath = "${{ matrix.binary_path }}"
-          $binName = "${{ matrix.binary_name }}"
-          $archiveName = "${{ steps.archive_meta.outputs.archive }}"
-          $packageDir = "package"
-          New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
-          $packagedBinary = Join-Path $packageDir $binName
-          Copy-Item $binPath $packagedBinary -Force
-          Compress-Archive -Path $packagedBinary -DestinationPath $archiveName -Force
+          $env:PATH += ';C:\Program Files (x86)\WiX Toolset v3.11\bin'
+          cargo bundle --release --features desktop
 
-      - name: Upload packaged artifact
+      - name: Create macOS DMG
+        id: mac_archive
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_DIR="target/release/bundle/osx/Deadline Tracker.app"
+          if [ ! -d "$APP_DIR" ]; then
+            echo "macOS bundle not found at $APP_DIR"
+            exit 1
+          fi
+          ARCHIVE_NAME="deadline-tracker-macos-${RELEASE_VERSION}.dmg"
+          hdiutil create -volname "Deadline Tracker" -srcfolder "$APP_DIR" -ov -format UDZO "$ARCHIVE_NAME"
+          echo "archive=$ARCHIVE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Collect Windows MSI
+        id: win_archive
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bundleDir = "target/release/bundle/msi"
+          if (-not (Test-Path $bundleDir)) {
+            Write-Error "Bundle directory '$bundleDir' not found"
+            exit 1
+          }
+          $msi = Get-ChildItem -Path $bundleDir -Filter '*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) {
+            Write-Error "No MSI artifact found"
+            exit 1
+          }
+          $archiveName = "deadline-tracker-windows-${{ env.RELEASE_VERSION }}.msi"
+          Copy-Item $msi.FullName $archiveName -Force
+          "archive=$archiveName" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding utf8
+
+      - name: Upload macOS artifact
+        if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.label }}-desktop
-          path: ${{ steps.archive_meta.outputs.archive }}
+          name: macos-desktop
+          path: ${{ steps.mac_archive.outputs.archive }}
+
+      - name: Upload Windows artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-desktop
+          path: ${{ steps.win_archive.outputs.archive }}
 
   release:
     name: Publish GitHub Release
