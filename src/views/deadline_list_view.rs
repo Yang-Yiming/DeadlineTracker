@@ -34,8 +34,26 @@ fn sorted_deadlines(input: &[Deadline], sort: SortType) -> Vec<Deadline> {
 #[component]
 pub fn DeadlineListView(deadlines: Vec<Deadline>, mut on_update: EventHandler<Deadline>, mut on_edit: EventHandler<Deadline>, mut on_delete: EventHandler<Deadline>) -> Element {
     let mut sort = use_signal(|| SortType::Urgency);
+    let mut search = use_signal(|| String::new());
 
-    let sorted = sorted_deadlines(&deadlines, sort());
+    let query = search().trim().to_lowercase();
+    let filtered: Vec<Deadline> = deadlines
+        .iter()
+        .filter(|deadline| {
+            if query.is_empty() {
+                return true;
+            }
+            // Match query against name or any tag (case-insensitive).
+            deadline.name.to_lowercase().contains(&query)
+                || deadline
+                    .tags
+                    .iter()
+                    .any(|tag| tag.to_lowercase().contains(&query))
+        })
+        .cloned()
+        .collect();
+
+    let sorted = sorted_deadlines(&filtered, sort());
 
     rsx! {
         div {
@@ -44,7 +62,8 @@ pub fn DeadlineListView(deadlines: Vec<Deadline>, mut on_update: EventHandler<De
             // Sorting controls
             div {
                 class: "sort-controls",
-                span { class: "font-bold text-gray-600", style: "padding: 0 0.5rem;", "Sort by:" }
+                style: "display: flex; align-items: center; gap: 0.5rem; width: 100%;",
+                span { class: "font-bold text-gray-600", "Sort by:" }
                 
                 button {
                     class: if sort() == SortType::DueDate { "sort-btn active" } else { "sort-btn" },
@@ -60,6 +79,17 @@ pub fn DeadlineListView(deadlines: Vec<Deadline>, mut on_update: EventHandler<De
                     class: if sort() == SortType::Progress { "sort-btn active" } else { "sort-btn" },
                     onclick: move |_| sort.set(SortType::Progress),
                     "Progress"
+                }
+
+                div {
+                    class: "sort-search",
+                    input {
+                        r#type: "text",
+                        class: "search-input",
+                        placeholder: "Search name or tag",
+                        value: "{search()}",
+                        oninput: move |e| search.set(e.value().clone()),
+                    }
                 }
             }
 

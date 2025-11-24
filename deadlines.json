@@ -22,9 +22,22 @@
     "progress": 0,
     "tags": [],
     "milestones": [],
-    "deleted": false,
+    "deleted": true,
     "created_at": 1763885943,
-    "updated_at": 1763885943,
+    "updated_at": 1763984212,
+    "schema_version": 1
+  },
+  {
+    "uid": "01KATTEAEN5PM6DNKJXEGFZVMV",
+    "name": "Tmp",
+    "due_text": "2025-11-07 12:00",
+    "difficulty": 5,
+    "progress": 0,
+    "tags": [],
+    "milestones": [],
+    "deleted": false,
+    "created_at": 1763984222,
+    "updated_at": 1763984235,
     "schema_version": 1
   }
 ]

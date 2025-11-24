@@ -93,13 +93,14 @@ pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Dead
             
             // Header
             div {
-                class: "flex justify-between items-center",
+                class: "flex justify-between items-start gap-2",
+                style: "flex-wrap: wrap;",
                 div {
-                    class: "flex flex-col",
-                    h3 { class: "text-xl font-bold", "{deadline.name}" }
-                    span { class: "text-sm text-gray-500", "{due_date_str}" }
+                    class: "flex flex-col min-w-0",
+                    h3 { class: "text-xl font-bold truncate", "{deadline.name}" }
+                    span { class: "text-sm text-gray-500 truncate", "{due_date_str}" }
                 }
-                div { class: "flex items-center gap-3",
+                div { class: "flex items-center gap-2 flex-shrink-0",
                     // Edit button
                     button {
                         class: "btn-icon",
