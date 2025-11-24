@@ -32,7 +32,7 @@ fn sorted_deadlines(input: &[Deadline], sort: SortType) -> Vec<Deadline> {
 }
 
 #[component]
-pub fn DeadlineListView(deadlines: Vec<Deadline>, mut on_update: EventHandler<Deadline>, mut on_edit: EventHandler<Deadline>) -> Element {
+pub fn DeadlineListView(deadlines: Vec<Deadline>, mut on_update: EventHandler<Deadline>, mut on_edit: EventHandler<Deadline>, mut on_delete: EventHandler<Deadline>) -> Element {
     let mut sort = use_signal(|| SortType::Urgency);
 
     let sorted = sorted_deadlines(&deadlines, sort());
@@ -75,6 +75,7 @@ pub fn DeadlineListView(deadlines: Vec<Deadline>, mut on_update: EventHandler<De
                             deadline: deadline_clone,
                             on_update: move |d| on_update.call(d),
                             on_edit: move |d| on_edit.call(d),
+                            on_delete: move |d| on_delete.call(d),
                         }
                     }
                 }) }

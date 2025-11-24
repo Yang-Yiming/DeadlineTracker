@@ -62,7 +62,7 @@ fn card_tint_from_urgency(urgency: f32) -> String {
 }
 
 #[component]
-pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Deadline>, mut on_edit: EventHandler<Deadline>) -> Element {
+pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Deadline>, mut on_edit: EventHandler<Deadline>, mut on_delete: EventHandler<Deadline>) -> Element {
     // Local, draggable progress state (0-100). If you want to persist upward, we can add a callback later.
     let mut progress = use_signal(|| deadline.progress as f32);
     
@@ -84,6 +84,7 @@ pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Dead
     let progress_width = move || format!("{}%", progress().clamp(0.0, 100.0));
     let edit_clone = deadline.clone();
     let update_clone = deadline.clone();
+    let delete_clone = deadline.clone();
 
     rsx! {
         div {
@@ -98,21 +99,44 @@ pub fn DeadlineItemView(mut deadline: Deadline, mut on_update: EventHandler<Dead
                     h3 { class: "text-xl font-bold", "{deadline.name}" }
                     span { class: "text-sm text-gray-500", "{due_date_str}" }
                 }
-                button {
-                    class: "btn-icon",
-                    onclick: move |_| on_edit.call(edit_clone.clone()),
-                    // Edit Icon (SVG)
-                    svg {
-                        width: "20",
-                        height: "20",
-                        fill: "none",
-                        stroke: "currentColor",
-                        view_box: "0 0 24 24",
-                        path {
-                            stroke_linecap: "round",
-                            stroke_linejoin: "round",
-                            stroke_width: "2",
-                            d: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                div { class: "flex items-center gap-3",
+                    // Edit button
+                    button {
+                        class: "btn-icon",
+                        title: "Edit",
+                        onclick: move |_| on_edit.call(edit_clone.clone()),
+                        svg {
+                            width: "20",
+                            height: "20",
+                            fill: "none",
+                            stroke: "currentColor",
+                            view_box: "0 0 24 24",
+                            path {
+                                stroke_linecap: "round",
+                                stroke_linejoin: "round",
+                                stroke_width: "2",
+                                d: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            }
+                        }
+                    }
+                    // Delete button (grouped with Edit)
+                    button {
+                        class: "btn-icon delete",
+                        title: "Delete",
+                        onclick: move |_| on_delete.call(delete_clone.clone()),
+                        svg {
+                            width: "20",
+                            height: "20",
+                            fill: "none",
+                            stroke: "currentColor",
+                            view_box: "0 0 24 24",
+                            path {
+                                stroke_linecap: "round",
+                                stroke_linejoin: "round",
+                                stroke_width: "2",
+                                // Updated trash icon path (heroicons outline style)
+                                d: "M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12z M9 7V4h6v3"
+                            }
                         }
                     }
                 }

@@ -134,6 +134,8 @@ body {
     cursor: pointer;
 }
 .btn-icon:hover { color: var(--primary-600); }
+.btn-icon.delete { color: var(--gray-400); }
+.btn-icon.delete:hover { color: var(--red-800); }
 
 /* Cards */
 .card {

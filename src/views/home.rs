@@ -111,6 +111,17 @@ pub fn Home() -> Element {
                         on_edit: move |d: Deadline| {
                             selected.set(Some(d));
                         }
+                        ,
+                        on_delete: {
+                            let repo = repo.clone();
+                            move |d: Deadline| {
+                                let repo = repo.clone();
+                                spawn(async move {
+                                    let _ = repo.delete(&d.id);
+                                });
+                                reload_trigger.with_mut(|x| *x += 1);
+                            }
+                        }
                     }
                 }
             }
