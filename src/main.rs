@@ -6,8 +6,7 @@ use persistence::init_repo;
 
 use views::{Blog, Home, Navbar};
 
-/// Define a components module that contains all shared components for our app.
-mod components;
+
 /// Define a model module that contains the data structures for our app.
 mod model;
 /// Persistence layer (backend-only): repository trait + Memory/SQLite implementations.

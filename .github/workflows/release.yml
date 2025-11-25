@@ -24,12 +24,23 @@ jobs:
         with:
           shared-key: desktop-release-macos
 
-      - name: Install Dioxus CLI
-        run: cargo install dioxus-cli
+      - name: Install cargo-binstall action
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install Dioxus CLI via cargo-binstall (dx)
+        run: |
+          set -euo pipefail
+          # Prefer binstall (prebuilt binary). Fall back to cargo install if binstall fails.
+          if ! cargo binstall dioxuslabs/dioxus@v0.7.1 --no-confirm --name dx --disable-telemetry; then
+            echo "cargo binstall failed, falling back to cargo install"
+            cargo install dioxus-cli --locked
+          fi
+          dx --version
 
       - name: Bundle macOS desktop app
         run: |
           dx bundle --release --platform desktop \
+            --features desktop \
             --package-types macos \
             --package-types dmg
 
@@ -70,11 +81,22 @@ jobs:
         with:
           shared-key: desktop-release-windows
 
-      - name: Install Dioxus CLI
-        run: cargo install dioxus-cli
+      - name: Install cargo-binstall action
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install Dioxus CLI via cargo-binstall (dx)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Prefer binstall (prebuilt binary). Fall back to cargo install if binstall fails.
+          if (-not (cargo binstall dioxuslabs/dioxus@v0.7.1 --no-confirm --name dx --disable-telemetry)) {
+            Write-Host "cargo binstall failed, falling back to cargo install"
+            cargo install dioxus-cli --locked
+          }
+          dx --version
 
       - name: Bundle Windows desktop app
-        run: dx bundle --release --platform desktop --package-types msi
+        run: dx bundle --release --platform desktop --features desktop --package-types msi
 
       - name: Find and rename artifacts
         id: artifacts
