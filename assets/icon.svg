@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background rounded square -->
+  <rect x="32" y="32" width="448" height="448" rx="64" ry="64" fill="#1a1a2e"/>
+  
+  <!-- Calendar base -->
+  <rect x="80" y="120" width="352" height="320" rx="24" ry="24" fill="#16213e"/>
+  <rect x="80" y="120" width="352" height="80" rx="24" ry="24" fill="#e94560"/>
+  
+  <!-- Calendar binding holes -->
+  <circle cx="160" cy="100" r="20" fill="#0f0f23"/>
+  <circle cx="256" cy="100" r="20" fill="#0f0f23"/>
+  <circle cx="352" cy="100" r="20" fill="#0f0f23"/>
+  
+  <!-- Calendar rings -->
+  <rect x="150" y="60" width="20" height="80" rx="6" fill="#4a4a6a"/>
+  <rect x="246" y="60" width="20" height="80" rx="6" fill="#4a4a6a"/>
+  <rect x="342" y="60" width="20" height="80" rx="6" fill="#4a4a6a"/>
+  
+  <!-- Clock circle -->
+  <circle cx="256" cy="310" r="120" fill="#0f3460" stroke="#e94560" stroke-width="8"/>
+  
+  <!-- Clock face inner -->
+  <circle cx="256" cy="310" r="100" fill="#16213e"/>
+  
+  <!-- Clock hour marks -->
+  <rect x="252" y="220" width="8" height="20" rx="4" fill="#e0e0e0"/>
+  <rect x="252" y="380" width="8" height="20" rx="4" fill="#e0e0e0"/>
+  <rect x="166" y="306" width="20" height="8" rx="4" fill="#e0e0e0"/>
+  <rect x="326" y="306" width="20" height="8" rx="4" fill="#e0e0e0"/>
+  
+  <!-- Clock hands -->
+  <!-- Hour hand -->
+  <rect x="250" y="270" width="12" height="50" rx="6" fill="#e0e0e0" transform="rotate(-30 256 310)"/>
+  <!-- Minute hand -->
+  <rect x="252" y="240" width="8" height="75" rx="4" fill="#e94560" transform="rotate(60 256 310)"/>
+  
+  <!-- Clock center -->
+  <circle cx="256" cy="310" r="12" fill="#e94560"/>
+  
+  <!-- Exclamation mark for urgency -->
+  <circle cx="380" cy="180" r="40" fill="#e94560"/>
+  <rect x="372" y="152" width="16" height="36" rx="4" fill="#fff"/>
+  <circle cx="380" cy="200" r="8" fill="#fff"/>
+</svg>

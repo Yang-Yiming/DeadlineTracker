@@ -1,4 +1,10 @@
 [application]
+name = "DeadlineTracker"
+
+[bundle]
+identifier = "com.yangyiming.deadlinetracker"
+publisher = "Yang Yiming"
+icon = ["assets/icon.png"]
 
 [web.app]
 
